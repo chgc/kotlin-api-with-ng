@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 export interface Todo {
   id: number;
   item: string;
-  editItem?: string;
   isCompleted: boolean;
+  editItem?: string;
   isEdit: boolean;
 }
 
@@ -27,7 +28,11 @@ export class ApiService {
     return this.http.delete('');
   }
 
-  queryTodos() {
-    return this.http.get('');
+  queryTodos(): Observable<Todo[]> {
+    return this.http.get<Todo[]>('');
+  }
+
+  batchUpdate(posts) {
+    return this.http.post('', posts);
   }
 }

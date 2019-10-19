@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { ApiService, Todo } from './api.service';
+import { mergeMap, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -14,21 +15,28 @@ export class AppComponent {
 
   constructor(private api: ApiService) {}
 
+  ngOnInit() {
+    this.loadTodos().subscribe();
+  }
+
   addTodo() {
     if (this.newTodoControl.invalid) return;
-    const maxId =
-      this.todos
-        .map(x => x.id)
-        .sort()
-        .pop() || 0;
 
-    this.todos.push({
-      id: maxId + 1,
-      item: this.newTodoControl.value,
-      isCompleted: false,
-      isEdit: false
-    });
-    this.newTodoControl.reset('');
+    this.api
+      .addTodo({
+        id: 0,
+        item: this.newTodoControl.value,
+        isCompleted: false,
+        isEdit: false
+      })
+      .pipe(mergeMap(() => this.loadTodos()))
+      .subscribe({
+        next: () => this.newTodoControl.reset('')
+      });
+  }
+
+  loadTodos() {
+    return this.api.queryTodos().pipe(tap(todos => (this.todos = todos)));
   }
 
   markAllComplete(event) {
@@ -51,11 +59,22 @@ export class AppComponent {
     todo.item = todo.editItem;
     todo.editItem = '';
     todo.isEdit = false;
+
+    this.api
+      .updateTodo(todo)
+      .pipe(mergeMap(() => this.loadTodos()))
+      .subscribe({
+        next: () => this.newTodoControl.reset('')
+      });
   }
 
   deleteTodo(todo) {
-    const idx = this.todos.findIndex(x => x.id == todo.id);
-    this.todos.splice(idx, 1);
+    this.api
+      .deleteTodo(todo)
+      .pipe(mergeMap(() => this.loadTodos()))
+      .subscribe({
+        next: () => this.newTodoControl.reset('')
+      });
   }
 
   get leftItems() {
